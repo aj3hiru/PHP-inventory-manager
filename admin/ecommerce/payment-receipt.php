@@ -2,7 +2,7 @@
 define('DROOT_PATH', $_SERVER['DOCUMENT_ROOT']);
 require_once DROOT_PATH . '/includes/config.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);

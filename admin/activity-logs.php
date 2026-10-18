@@ -7,7 +7,8 @@ require_once DROOT_PATH . '/includes/functions.php';
 
 
 if (!isset($_SESSION['user_id'])) {
-    exit('Access Denied');
+    header('Location: /admin/login.php');
+    exit;
 }
 
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");

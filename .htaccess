@@ -1,179 +1,40 @@
-Options +FollowSymLinks +SymLinksIfOwnerMatch
-RewriteEngine On
-
-# ============================================================
-# LITESPEED / APACHE REWRITE ENGINE
-# ============================================================
-
-RewriteEngine On
-
-# REQUIRED for LiteSpeed mod_rewrite to work
-Options +FollowSymLinks
-
-<IfModule mod_dir.c>
-    DirectoryIndex index.html index.php
-</IfModule>
-
-RewriteBase /
+# Store panel (Apache / LiteSpeed)
 Options -Indexes
+DirectoryIndex index.php
 
-# ============================================================
-# DEAD ROUTES — 410 Gone
-# ============================================================
-RewriteRule ^category(/.*)?$ - [G,L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
 
-# ============================================================
-# WWW → NON-WWW REDIRECT
-# ============================================================
-RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
-RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+    # Settings, install scripts, libraries and dot-files are never served
+    RewriteRule ^(includes|install|vendor)(/|$) - [F,L]
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^router\.php$ - [F,L]
 
-# ============================================================
-# PHP CONFIGURATION
-# ============================================================
-<IfModule php8_module>
-    php_value date.timezone "Asia/Kolkata"
+    # Short address for the login page
+    RewriteRule ^login/?$ admin/login.php [L,QSA]
 </IfModule>
 
-# ============================================================
-# BROWSER CACHING
-# ============================================================
+# Uploaded files are images only: never run scripts from uploads/
+<IfModule mod_rewrite.c>
+    RewriteRule ^uploads/.*\.(php|phtml|phar|pl|py|cgi|sh)$ - [F,L,NC]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+
 <IfModule mod_expires.c>
     ExpiresActive On
-    ExpiresByType application/javascript "access plus 1 month"
-    ExpiresByType text/javascript "access plus 1 month"
     ExpiresByType text/css "access plus 1 month"
-    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 month"
     ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
     ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>
-
-# ============================================================
-# ERROR PAGES
-# ============================================================
-ErrorDocument 404 /templates/page_not_found.php
-
-# ============================================================
-# URL ROUTING — CLEAN URLS
-# ============================================================
-
-# ============================================================
-# SHOP — CLEAN URLS (Flipkart/Amazon-style)
-# Internal rewrites (no redirect, no /shop/ visible in the address bar).
-# Must come before the blog's catch-all slug-id rule below, since some of
-# these (e.g. /p/some-slug) could otherwise be mistaken for a blog post.
-# Homepage needs NO rule here at all — root "/" already serves the shop
-# homepage via the site's own root index.php (require shop/index.php), so
-# there is no separate "/store" URL any more; "/" IS the homepage.
-# ============================================================
-RewriteRule ^p/([a-zA-Z0-9-]+)/?$ shop/product.php?slug=$1 [L,QSA]
-RewriteRule ^c/([a-zA-Z0-9-]+)/?$ shop/category.php?slug=$1 [L,QSA]
-RewriteRule ^cart/?$ shop/cart.php [L,QSA]
-RewriteRule ^checkout/?$ shop/checkout.php [L,QSA]
-RewriteRule ^login/?$ shop/login.php [L,QSA]
-RewriteRule ^register/?$ shop/register.php [L,QSA]
-RewriteRule ^logout/?$ shop/logout.php [L,QSA]
-RewriteRule ^account/?$ shop/account.php [L,QSA]
-RewriteRule ^wishlist/?$ shop/wishlist.php [L,QSA]
-RewriteRule ^order/([0-9]+)/?$ shop/order.php?id=$1 [L,QSA]
-RewriteRule ^shop-ajax/?$ shop/ajax.php [L,QSA]
-
-# Old /shop/... links (bookmarks, anything already indexed/shared before this
-# change) redirect to their new clean equivalent instead of 404ing.
-# Guarded with %{ENV:REDIRECT_STATUS} = "" so these ONLY fire on a genuinely
-# fresh external request — not on the second internal pass that mod_rewrite
-# runs after one of the internal rewrites above already matched (that pass
-# re-evaluates this whole file against the rewritten path, e.g. shop/index.php,
-# which would otherwise match these same-named rules and bounce back out as
-# an incorrect external redirect / loop).
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/?$ / [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/index\.php$ / [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{QUERY_STRING} ^slug=([^&]+)$
-RewriteRule ^shop/product\.php$ /p/%1? [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{QUERY_STRING} ^slug=([^&]+)&(sub=.+)$
-RewriteRule ^shop/category\.php$ /c/%1?%2 [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{QUERY_STRING} ^slug=([^&]+)$
-RewriteRule ^shop/category\.php$ /c/%1? [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/cart\.php$ /cart [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/checkout\.php$ /checkout [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/login\.php$ /login [R=301,L,QSA]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/register\.php$ /register [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/logout\.php$ /logout [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/account\.php$ /account [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^shop/wishlist\.php$ /wishlist [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{QUERY_STRING} ^id=([0-9]+)$
-RewriteRule ^shop/order\.php$ /order/%1? [R=301,L]
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{REQUEST_METHOD} !^POST$
-RewriteRule ^shop/ajax\.php$ /shop-ajax [R=301,L,QSA]
-
-# Static pages FIRST (before the catch-all post rule)
-RewriteRule ^about-us/?$ /pages/about-us.php [L,QSA,NC]
-RewriteRule ^contact-us/?$ /pages/contact-us.php [L,QSA,NC]
-RewriteRule ^terms-of-service/?$ /pages/terms-of-service.php [L,QSA,NC]
-RewriteRule ^cookie-policy/?$ /pages/cookie-policy.php [L,QSA,NC]
-RewriteRule ^privacy-policy/?$ /pages/privacy-policy.php [L,QSA,NC]
-RewriteRule ^disclaimer/?$ /pages/disclaimer.php [L,QSA,NC]
-RewriteRule ^affiliate-disclaimer/?$ /pages/affiliate-disclaimer.php [L,QSA,NC]
-RewriteRule ^editorial-policy/?$ /pages/editorial-policy.php [L,QSA,NC]
-RewriteRule ^commercial-policy/?$ /pages/commercial-policy.php [L,QSA,NC]
-
-# Search
-RewriteRule ^search/?$ search.php [L,QSA]
-
-# Categories listing
-RewriteRule ^categories/?$ categories.php [L,QSA]
-
-# Taxonomy & metadata pages
-RewriteRule ^tag/([a-z0-9-]+)-([0-9]+)/?$ tag.php?id=$2 [L,QSA]
-RewriteRule ^categories/([a-zA-Z0-9-]+)/?$ category.php?slug=$1 [L,QSA]
-RewriteRule ^author/([a-zA-Z0-9_-]+)/?$ author.php?slug=$1 [L,QSA]
-
-# State jobs
-RewriteRule ^state-jobs/?$ states.php [L]
-RewriteRule ^state-jobs/([a-zA-Z0-9-]+)/?$ state-jobs.php?slug=$1 [L]
-
-# Web stories
-RewriteRule ^web-stories/?$ /stories/ [R=301,L]
-RewriteRule ^web-stories/([a-z0-9-]+-[0-9]+)/?$ /story/$1 [R=301,L]
-RewriteRule ^story/([a-z0-9-]+)-([0-9]+)/?$ stories/view.php?id=$2 [L,QSA]
-
-# Documents
-RewriteRule ^documents/(\d+)$ doc.php?id=$1 [L,QSA]
-
-# XML feeds
-RewriteRule ^sitemap\.xml$ sitemap.php [L]
-RewriteRule ^news-sitemap\.xml$ news-sitemap.php [L]
-RewriteRule ^rss\.xml$ rss.php [L]
-
-# Blog post — catch-all (slug-id pattern) — MUST be last
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^([a-zA-Z0-9-]+)-([0-9]+)/?$ post.php?id=$2 [L,QSA]
-
-# PHP extension-less URLs
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}\.php -f
-RewriteRule ^(.*)$ $1.php [L]
-
-# ============================================================
-# PDF HOTLINK PROTECTION
-# ============================================================
-RewriteCond %{HTTP_REFERER} !^https?://(www\.)?edumint24\.com(/.*)?$ [NC]
-RewriteCond %{HTTP_REFERER} !^$
-RewriteRule \.(pdf)$ - [F,L]

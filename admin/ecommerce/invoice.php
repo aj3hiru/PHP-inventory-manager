@@ -3,7 +3,7 @@ define('DROOT_PATH', $_SERVER['DOCUMENT_ROOT']);
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -183,7 +183,7 @@ table.inv-table th:nth-child(4), table.inv-table td:nth-child(4) { width: 24%; }
             <?php if (in_array($invoice_display, ['name','both'], true) || empty($biz['logo'])): ?><h1><?= htmlspecialchars($biz['business_name'] ?: $site_name) ?></h1><?php endif; ?>
             <?php if ($show_address_on_invoice && !empty($biz['address'])): ?><div class="biz-line"><?= nl2br(htmlspecialchars($biz['address'])) ?></div><?php endif; ?>
             <?php if ($show_location_on_invoice && !empty($biz['location'])): ?><div class="biz-line"><?= htmlspecialchars($biz['location']) ?></div><?php endif; ?>
-            <?php if (!empty($invoice_numbers) || !empty($biz['email'])): ?><div class="biz-line"><?= htmlspecialchars(implode(', ', $invoice_numbers)) ?><?= (!empty($invoice_numbers) && !empty($biz['email'])) ? ' · ' : '' ?><?= htmlspecialchars($biz['email']) ?></div><?php endif; ?>
+            <?php if (!empty($invoice_numbers) || !empty($biz['email'])): ?><div class="biz-line"><?= htmlspecialchars(implode(', ', $invoice_numbers)) ?><?= (!empty($invoice_numbers) && !empty($biz['email'])) ? ' · ' : '' ?><?= htmlspecialchars($biz['email'] ?? '') ?></div><?php endif; ?>
             <?php if ($has_gstin): ?><div class="biz-line"><strong>GSTIN:</strong> <?= htmlspecialchars($biz['gstin']) ?></div><?php endif; ?>
             <?php if ($has_pan): ?><div class="biz-line"><strong>PAN:</strong> <?= htmlspecialchars($biz['pan_number']) ?></div><?php endif; ?>
         </div>

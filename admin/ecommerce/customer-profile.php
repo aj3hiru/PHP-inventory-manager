@@ -5,7 +5,7 @@ define('ADMIN_URL', '/admin');
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -27,12 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $customer_type = ($_POST['customer_type'] ?? 'online') === 'offline' ? 'offline' : 'online';
     $status        = ($_POST['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active';
 
-    if (empty($name) || empty($email)) {
-        $notifications[] = ['type' => 'error', 'message' => 'Name and email are required.'];
+    if (empty($name)) {
+        $notifications[] = ['type' => 'error', 'message' => 'Name is required.'];
     } else {
         try {
             $pdo->prepare("UPDATE ecom_customers SET name=?, email=?, phone=?, address=?, customer_type=?, status=? WHERE id=?")
-                ->execute([$name, $email, $phone ?: null, $address ?: null, $customer_type, $status, $customer_id]);
+                ->execute([$name, $email ?: null, $phone ?: null, $address ?: null, $customer_type, $status, $customer_id]);
 
             $pdo->prepare("INSERT INTO activity_logs (user_id, action_type, description, ip_address, user_agent) VALUES (?, 'ecom_customer_update', ?, ?, ?)")
                 ->execute([$_SESSION['user_id'], "Updated Customer profile: $name (ID: $customer_id)", $log_ip, $log_ua]);
@@ -230,8 +230,8 @@ $page_subtitle = 'Customer profile and purchase history';
                                     <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($customer['name']) ?>" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($customer['email']) ?>" required>
+                                    <label class="form-label">Email (optional)</label>
+                                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($customer['email'] ?? '') ?>">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Phone</label>

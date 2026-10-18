@@ -3,7 +3,7 @@ define('DROOT_PATH', $_SERVER['DOCUMENT_ROOT']);
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -176,7 +176,7 @@ table.report-table tfoot td { font-weight: 700; background: #f9fafb; }
         <?php if ($show_addr): ?><div class="report-meta"><?= nl2br(htmlspecialchars($biz['address'])) ?></div><?php endif; ?>
         <div class="report-meta">
             <?php if (!empty($biz_numbers)): ?>Tel: <?= htmlspecialchars(implode(', ', array_filter($biz_numbers))) ?><?php endif; ?>
-            <?php if (!empty($biz['email'])): ?> · <?= htmlspecialchars($biz['email']) ?><?php endif; ?>
+            <?php if (!empty($biz['email'])): ?> · <?= htmlspecialchars($biz['email'] ?? '') ?><?php endif; ?>
             <?php if (!empty($biz['website_url'])): ?> · <?= htmlspecialchars($biz['website_url']) ?><?php endif; ?>
         </div>
         <div class="report-meta">

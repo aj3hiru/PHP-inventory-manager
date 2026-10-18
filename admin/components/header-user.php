@@ -3,7 +3,7 @@
         <div class="avatar"><?= strtoupper(substr($username, 0, 1)) ?></div>
         <div class="info">
             <div class="name"><?= htmlspecialchars($username) ?></div>
-            <div class="role"><?= ucfirst(htmlspecialchars($_SESSION['role'] ?? '')) ?></div>
+            <div class="role"><?= htmlspecialchars(['admin' => 'Owner', 'editor' => 'Manager', 'author' => 'Billing staff'][$_SESSION['role'] ?? ''] ?? ucfirst($_SESSION['role'] ?? '')) ?></div>
         </div>
     </button>
     <ul class="header-user-menu">

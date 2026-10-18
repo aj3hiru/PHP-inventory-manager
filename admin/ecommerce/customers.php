@@ -5,7 +5,7 @@ define('ADMIN_URL', '/admin');
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -24,17 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'delet
     $name          = trim($_POST['name'] ?? '');
     $email         = trim($_POST['email'] ?? '');
     $phone         = trim($_POST['phone'] ?? '');
-    $customer_type = ($_POST['customer_type'] ?? 'online') === 'offline' ? 'offline' : 'online';
+    $customer_type = ($_POST['customer_type'] ?? 'offline') === 'online' ? 'online' : 'offline';   // store customers are 'offline'
     $address       = trim($_POST['address'] ?? '');
     $status        = ($_POST['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active';
 
-    if (empty($name) || empty($email)) {
-        $notifications[] = ['type' => 'error', 'message' => 'Name and email are required.'];
+    if (empty($name)) {
+        $notifications[] = ['type' => 'error', 'message' => 'Name is required.'];
     } else {
         try {
             if ($action === 'create') {
                 $pdo->prepare("INSERT INTO ecom_customers (name, email, phone, customer_type, address, status) VALUES (?,?,?,?,?,?)")
-                    ->execute([$name, $email, $phone ?: null, $customer_type, $address ?: null, $status]);
+                    ->execute([$name, $email ?: null, $phone ?: null, $customer_type, $address ?: null, $status]);
 
                 $new_id = $pdo->lastInsertId();
                 $pdo->prepare("INSERT INTO activity_logs (user_id, action_type, description, ip_address, user_agent) VALUES (?, 'ecom_customer_create', ?, ?, ?)")
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'delet
                 exit;
             } elseif ($action === 'update' && $edit_id > 0) {
                 $pdo->prepare("UPDATE ecom_customers SET name=?, email=?, phone=?, customer_type=?, address=?, status=? WHERE id=?")
-                    ->execute([$name, $email, $phone ?: null, $customer_type, $address ?: null, $status, $edit_id]);
+                    ->execute([$name, $email ?: null, $phone ?: null, $customer_type, $address ?: null, $status, $edit_id]);
 
                 $pdo->prepare("INSERT INTO activity_logs (user_id, action_type, description, ip_address, user_agent) VALUES (?, 'ecom_customer_update', ?, ?, ?)")
                     ->execute([$_SESSION['user_id'], "Updated Customer: $name (ID: $edit_id)", $log_ip, $log_ua]);
@@ -174,8 +174,6 @@ $page_subtitle = 'Everyone who has an account, or has purchased in-store';
 
             <div class="stat-mini-grid">
                 <a href="customers.php" class="text-decoration-none"><div class="stat-mini"><div class="val"><?= number_format($total_all) ?></div><div class="lbl">All Customers</div></div></a>
-                <a href="customers.php?filter=online" class="text-decoration-none"><div class="stat-mini"><div class="val" style="color:var(--info);"><?= number_format($total_online) ?></div><div class="lbl">Online</div></div></a>
-                <a href="customers.php?filter=offline" class="text-decoration-none"><div class="stat-mini"><div class="val" style="color:var(--warning);"><?= number_format($total_offline) ?></div><div class="lbl">Offline (In-store)</div></div></a>
             </div>
 
             <div class="gd-card">
@@ -216,7 +214,6 @@ $page_subtitle = 'Everyone who has an account, or has purchased in-store';
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Phone</th>
-                                    <th>Type</th>
                                     <th>Joined</th>
                                     <th>Orders</th>
                                     <th>Status</th>
@@ -227,9 +224,8 @@ $page_subtitle = 'Everyone who has an account, or has purchased in-store';
                             <?php foreach ($customers as $c): ?>
                             <tr>
                                 <td><?= htmlspecialchars($c['name']) ?></td>
-                                <td><?= htmlspecialchars($c['email']) ?></td>
+                                <td><?= htmlspecialchars($c['email'] ?: '—') ?></td>
                                 <td><?= htmlspecialchars($c['phone'] ?: '—') ?></td>
-                                <td><span class="type-pill type-<?= $c['customer_type'] ?>"><?= ucfirst($c['customer_type']) ?></span></td>
                                 <td><?= date('d M Y', strtotime($c['created_at'])) ?></td>
                                 <td><?= (int)$c['order_count'] ?></td>
                                 <td>
@@ -292,8 +288,8 @@ $page_subtitle = 'Everyone who has an account, or has purchased in-store';
                         <input type="text" name="name" id="custName" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" name="email" id="custEmail" class="form-control" required>
+                        <label class="form-label">Email (optional)</label>
+                        <input type="email" name="email" id="custEmail" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Phone</label>
@@ -304,15 +300,7 @@ $page_subtitle = 'Everyone who has an account, or has purchased in-store';
                         <textarea name="address" id="custAddress" class="form-control" rows="2"></textarea>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label d-block">Customer Type</label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" name="customer_type" id="custTypeOnline" value="online" checked>
-                                <label class="btn btn-outline-primary btn-sm" for="custTypeOnline">Online</label>
-                                <input type="radio" class="btn-check" name="customer_type" id="custTypeOffline" value="offline">
-                                <label class="btn btn-outline-warning btn-sm" for="custTypeOffline">Offline</label>
-                            </div>
-                        </div>
+                        <input type="hidden" name="customer_type" value="offline">
                         <div class="col-md-6 mb-3">
                             <label class="form-label d-block">Status</label>
                             <div class="btn-group w-100" role="group">
@@ -357,7 +345,7 @@ $page_subtitle = 'Everyone who has an account, or has purchased in-store';
 <?php include __DIR__ . '/components/ecom-scripts.php'; ?>
 <script>
 $(document).ready(function () {
-    $('#admin-table').DataTable({ order: [], columnDefs: [{ orderable: false, targets: [3, 5, 6, 7] }] });
+    $('#admin-table').DataTable({ order: [], columnDefs: [{ orderable: false, targets: [4, 5, 6] }] });
 });
 
 function resetCustomerForm() {
@@ -367,7 +355,6 @@ function resetCustomerForm() {
     document.getElementById('customerModalLabel').textContent = 'New Customer';
     document.getElementById('custSubmitBtn').textContent = 'Create Customer';
     document.getElementById('custStatusActive').checked = true;
-    document.getElementById('custTypeOnline').checked = true;
 }
 function openCreateModal() { resetCustomerForm(); }
 function openEditModal(c) {
@@ -380,8 +367,6 @@ function openEditModal(c) {
     document.getElementById('custEmail').value = c.email;
     document.getElementById('custPhone').value = c.phone || '';
     document.getElementById('custAddress').value = c.address || '';
-    if (c.customer_type === 'offline') document.getElementById('custTypeOffline').checked = true;
-    else document.getElementById('custTypeOnline').checked = true;
     if (c.status === 'inactive') document.getElementById('custStatusInactive').checked = true;
     else document.getElementById('custStatusActive').checked = true;
     new bootstrap.Modal(document.getElementById('customerModal')).show();

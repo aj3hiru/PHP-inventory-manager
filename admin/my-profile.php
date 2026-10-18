@@ -5,7 +5,7 @@ define('ADMIN_URL', '/admin');
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
@@ -113,7 +113,7 @@ $page_subtitle = 'Update your account details and password';
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Email <span class="text-danger">*</span></label>
-                                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>" required>
+                                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email'] ?? '') ?>" required>
                                 </div>
                                 <hr>
                                 <p class="text-muted small mb-2">Leave the password fields blank to keep your current password.</p>

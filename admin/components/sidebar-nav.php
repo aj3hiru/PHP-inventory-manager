@@ -101,7 +101,7 @@
     <div class="nav-section">
         <div class="nav-title">Main</div>
 
-        <a href="/admin/dashboard.php" class="nav-link<?= ($current_admin_page === 'dashboard.php' && strpos($_SERVER['PHP_SELF'], '/admin/blog/') === false) ? ' active' : '' ?>">
+        <a href="/admin/dashboard.php" class="nav-link<?= $current_admin_page === 'dashboard.php' ? ' active' : '' ?>">
             <i class="fas fa-home"></i>
             Dashboard
         </a>
@@ -160,10 +160,6 @@
                 <i class="fas fa-file-csv"></i>
                 CSV Import &amp; Export
             </a>
-            <a href="/admin/ecommerce/product-reviews.php" class="nav-link<?= $current_admin_page === 'product-reviews.php' ? ' active' : '' ?>">
-                <i class="fas fa-star-half-alt"></i>
-                Product Reviews
-            </a>
             <a href="/admin/ecommerce/barcode-print.php" class="nav-link<?= $current_admin_page === 'barcode-print.php' ? ' active' : '' ?>">
                 <i class="fas fa-barcode"></i>
                 Print Barcodes
@@ -200,42 +196,6 @@
     </div>
     <?php endif; ?>
 
-    <!-- 5. MANAGE ORDERS -->
-    <?php if (!empty($permissions['ecommerce']['manage_orders'])): ?>
-    <?php $orders_open = in_array($current_admin_page, ['orders.php', 'order-view.php'], true); ?>
-    <div class="nav-section">
-        <div class="nav-title">Manage Orders</div>
-
-        <div class="nav-parent-row">
-            <a href="/admin/ecommerce/orders.php" class="nav-link<?= ($current_admin_page === 'orders.php' && empty($_GET['type'])) ? ' active' : '' ?>">
-                <i class="fas fa-receipt"></i>
-                All Orders
-            </a>
-            <button type="button" class="nav-expand-btn<?= $orders_open ? ' open' : '' ?>" onclick="toggleNavSubmenu(this, 'submenu-orders')">
-                <i class="fas fa-chevron-down"></i>
-            </button>
-        </div>
-        <div class="nav-submenu<?= $orders_open ? ' open' : '' ?>" id="submenu-orders">
-            <a href="/admin/ecommerce/orders.php?type=Pending" class="nav-link<?= ($current_admin_page === 'orders.php' && ($_GET['type'] ?? '') === 'Pending') ? ' active' : '' ?>">
-                <i class="fas fa-hourglass-half"></i>
-                Pending Orders
-            </a>
-            <a href="/admin/ecommerce/orders.php?type=In+Progress" class="nav-link<?= ($current_admin_page === 'orders.php' && ($_GET['type'] ?? '') === 'In Progress') ? ' active' : '' ?>">
-                <i class="fas fa-truck-loading"></i>
-                Progress Orders
-            </a>
-            <a href="/admin/ecommerce/orders.php?type=Delivered" class="nav-link<?= ($current_admin_page === 'orders.php' && ($_GET['type'] ?? '') === 'Delivered') ? ' active' : '' ?>">
-                <i class="fas fa-truck"></i>
-                Delivered Orders
-            </a>
-            <a href="/admin/ecommerce/orders.php?type=Canceled" class="nav-link<?= ($current_admin_page === 'orders.php' && ($_GET['type'] ?? '') === 'Canceled') ? ' active' : '' ?>">
-                <i class="fas fa-ban"></i>
-                Canceled Orders
-            </a>
-        </div>
-    </div>
-    <?php endif; ?>
-
     <!-- 6. CUSTOMERS -->
     <?php if (!empty($permissions['ecommerce']['manage_customers'])): ?>
     <div class="nav-section">
@@ -265,19 +225,9 @@
     <div class="nav-section">
         <div class="nav-title">Settings</div>
 
-        <a href="/admin/ecommerce/payment.php" class="nav-link<?= $current_admin_page === 'payment.php' ? ' active' : '' ?>">
-            <i class="fas fa-credit-card"></i>
-            Payment
-        </a>
-
         <a href="/admin/ecommerce/business-settings.php" class="nav-link<?= $current_admin_page === 'business-settings.php' ? ' active' : '' ?>">
             <i class="fas fa-building"></i>
             Business Setting
-        </a>
-
-        <a href="/admin/ecommerce/homepage-settings.php" class="nav-link<?= $current_admin_page === 'homepage-settings.php' ? ' active' : '' ?>">
-            <i class="fas fa-home"></i>
-            Homepage Settings
         </a>
 
         <?php if (!empty($permissions['ecommerce']['manage_products'])): ?>
@@ -301,101 +251,9 @@
     </div>
     <?php endif; ?>
 
-    <!-- 9. FILE MANAGER (general utility) -->
-    <?php if (!empty($permissions['files']['access_file_manager'])): ?>
-    <div class="nav-section">
-        <div class="nav-title">Media</div>
-
-        <a href="/admin/file-manager.php" class="nav-link<?= $current_admin_page === 'file-manager.php' ? ' active' : '' ?>">
-            <i class="fas fa-images"></i>
-            File Manager
-        </a>
-    </div>
-    <?php endif; ?>
-
-    <!-- 10. MARKETING -->
-    <?php if (!empty($permissions['push_notifications']['send'])): ?>
-    <div class="nav-section">
-        <div class="nav-title">Marketing</div>
-
-        <a href="/push_notifications/push-manager.php" class="nav-link<?= $current_admin_page === 'push-manager.php' ? ' active' : '' ?>">
-            <i class="fas fa-bell"></i>
-            Push Notifications
-        </a>
-    </div>
-    <?php endif; ?>
-
-    <!-- 11. BLOG (everything blog-related, closed by default) -->
-    <?php
-        $in_blog_folder = strpos($_SERVER['PHP_SELF'], '/admin/blog/') !== false;
-        $blog_open = $in_blog_folder;
-        $has_any_blog_permission = !empty(array_filter($permissions['blogs'] ?? [])) || !empty($permissions['analytics']['view_basic']);
-    ?>
-    <?php if ($has_any_blog_permission): ?>
-    <div class="nav-section">
-        <div class="nav-parent-row">
-            <div class="nav-title" style="flex:1; padding-top:0.4rem;">Blog</div>
-            <button type="button" class="nav-expand-btn<?= $blog_open ? ' open' : '' ?>" onclick="toggleNavSubmenu(this, 'submenu-blog')">
-                <i class="fas fa-chevron-down"></i>
-            </button>
-        </div>
-        <div class="nav-submenu<?= $blog_open ? ' open' : '' ?>" id="submenu-blog">
-            <a href="/admin/blog/dashboard.php" class="nav-link<?= ($current_admin_page === 'dashboard.php' && $in_blog_folder) ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-tachometer-alt"></i>
-                Blog Dashboard
-            </a>
-
-            <a href="/admin/blog/blogs-manager.php" class="nav-link<?= $current_admin_page === 'blogs-manager.php' ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-newspaper"></i>
-                Blog Posts
-            </a>
-
-            <?php if (!empty($permissions['blogs']['manage_categories'])): ?>
-            <a href="/admin/blog/categories-manager.php" class="nav-link<?= $current_admin_page === 'categories-manager.php' ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-list"></i>
-                Category Manager
-            </a>
-            <?php endif; ?>
-
-            <?php if (!empty($permissions['blogs']['manage_tags'])): ?>
-            <a href="/admin/blog/tag-manager.php" class="nav-link<?= $current_admin_page === 'tag-manager.php' ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-tags"></i>
-                Tag Manager
-            </a>
-            <?php endif; ?>
-
-            <?php if (!empty($permissions['blogs']['manage_comments'])): ?>
-            <a href="/admin/blog/comments-manager.php" class="nav-link<?= $current_admin_page === 'comments-manager.php' ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-comments"></i>
-                Comments
-            </a>
-            <?php endif; ?>
-
-            <?php if (!empty($permissions['analytics']['view_basic'])): ?>
-            <a href="/admin/blog/analytics.php" class="nav-link<?= $current_admin_page === 'analytics.php' ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-chart-line"></i>
-                Analytics
-            </a>
-            <?php endif; ?>
-
-            <a href="/admin/blog/ads-manager.php" class="nav-link<?= $current_admin_page === 'ads-manager.php' ? ' active' : '' ?>" style="padding-left:1.1rem;">
-                <i class="fas fa-ad"></i>
-                Ads Manager
-            </a>
-        </div>
-    </div>
-    <?php endif; ?>
-
     <!-- 12. SYSTEM (general admin tools, kept at the very bottom) -->
     <div class="nav-section">
         <div class="nav-title">System</div>
-
-        <?php if (!empty($permissions['settings']['maintenance_mode'])): ?>
-        <a href="/admin/cache-manager.php" class="nav-link<?= $current_admin_page === 'cache-manager.php' ? ' active' : '' ?>">
-            <i class="fas fa-bolt"></i>
-            Cache Manager
-        </a>
-        <?php endif; ?>
 
         <?php if (!empty($permissions['security']['view_logs'])): ?>
         <a href="/admin/activity-logs.php" class="nav-link<?= $current_admin_page === 'activity-logs.php' ? ' active' : '' ?>">
@@ -405,9 +263,9 @@
         <?php endif; ?>
 
         <?php if (!empty($permissions['users']['create'])): ?>
-        <a href="/admin/user-manager.php" class="nav-link<?= $current_admin_page === 'user-manager.php' ? ' active' : '' ?>">
-            <i class="fas fa-user"></i>
-            Users Manager
+        <a href="/admin/staff.php" class="nav-link<?= $current_admin_page === 'staff.php' ? ' active' : '' ?>">
+            <i class="fas fa-user-shield"></i>
+            Staff
         </a>
         <?php endif; ?>
 

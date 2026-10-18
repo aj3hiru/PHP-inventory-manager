@@ -6,7 +6,8 @@ require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
-    exit('Access Denied');
+    header('Location: /admin/login.php');
+    exit;
 }
 
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
@@ -249,7 +250,7 @@ $seo_robots = 'noindex, nofollow, noarchive, nosnippet';
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.5; }
 
-/* ── Edumint chrome: sidebar + top-nav (architecture unchanged) ───────────── */
+/* ── Panel chrome: sidebar + top-nav ───────────── */
 .admin-container { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
 @media (min-width: 1024px) { .admin-container { grid-template-columns: var(--sidebar-width) 1fr; } }
 

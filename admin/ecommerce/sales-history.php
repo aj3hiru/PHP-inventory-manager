@@ -5,7 +5,7 @@ define('ADMIN_URL', '/admin');
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -236,11 +236,6 @@ $page_subtitle = 'Every completed sale — in-store and online — in one place'
                     <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
                 </form>
 
-                <div class="btn-group">
-                    <a href="?range=<?= $range ?>&sale_type=all<?= $range === 'custom' ? '&from=' . $date_from . '&to=' . $date_to : '' ?>" class="btn btn-sm <?= $sale_type === 'all' ? 'btn-primary' : 'btn-outline-secondary' ?>">All Sales</a>
-                    <a href="?range=<?= $range ?>&sale_type=offline<?= $range === 'custom' ? '&from=' . $date_from . '&to=' . $date_to : '' ?>" class="btn btn-sm <?= $sale_type === 'offline' ? 'btn-primary' : 'btn-outline-secondary' ?>">Store Sales</a>
-                    <a href="?range=<?= $range ?>&sale_type=online<?= $range === 'custom' ? '&from=' . $date_from . '&to=' . $date_to : '' ?>" class="btn btn-sm <?= $sale_type === 'online' ? 'btn-primary' : 'btn-outline-secondary' ?>">Online Sales</a>
-                </div>
             </div>
 
             <!-- SUMMARY CARDS -->

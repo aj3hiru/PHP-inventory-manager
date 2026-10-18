@@ -5,7 +5,7 @@ define('ADMIN_URL', '/admin');
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -201,7 +201,7 @@ $page_subtitle = 'Order details and items';
                 </div>
             </div>
             <div class="nav-right">
-                <a href="orders.php" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to Orders</a>
+                <a href="sales-history.php" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Back to Sales History</a>
                 <button class="icon-btn dark-mode-toggle" style="background: var(--primary-lighter); color: var(--primary);"><i class="fas fa-moon"></i></button>
                 <?php include DROOT_PATH . '/admin/components/header-user.php'; ?>
             </div>

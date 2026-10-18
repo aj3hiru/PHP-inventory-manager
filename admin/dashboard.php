@@ -5,7 +5,7 @@ define('ADMIN_URL', '/admin');
 require_once DROOT_PATH . '/includes/config.php';
 require_once DROOT_PATH . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) { exit('Access Denied'); }
+if (!isset($_SESSION['user_id'])) { header('Location: /admin/login.php'); exit; }
 $stmt = $pdo->prepare("SELECT status, permissions FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -63,24 +63,21 @@ switch ($range) {
 $range_start = $date_from . ' 00:00:00';
 $range_end   = $date_to . ' 23:59:59';
 
-// ── Online Platform ──────────────────────────────────────────────────────────
-$on_total     = scalar($pdo, "SELECT COUNT(*) FROM ecom_orders WHERE order_type='online' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$on_pending   = scalar($pdo, "SELECT COUNT(*) FROM ecom_orders WHERE order_type='online' AND order_status='Pending' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$on_progress  = scalar($pdo, "SELECT COUNT(*) FROM ecom_orders WHERE order_type='online' AND order_status='In Progress' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$on_delivered = scalar($pdo, "SELECT COUNT(*) FROM ecom_orders WHERE order_type='online' AND order_status='Delivered' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$on_canceled  = scalar($pdo, "SELECT COUNT(*) FROM ecom_orders WHERE order_type='online' AND order_status='Canceled' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$on_customers = scalar($pdo, "SELECT COUNT(*) FROM ecom_customers WHERE customer_type='online' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-
-// ── Offline Customers (standalone, no order-status breakdown needed) ────────
-$off_customers = scalar($pdo, "SELECT COUNT(*) FROM ecom_customers WHERE customer_type='offline' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
+// ── Sales (store bills) ──────────────────────────────────────────────────────
+$bill_count    = scalar($pdo, "SELECT COUNT(*) FROM ecom_orders WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
+$bill_total    = scalar($pdo, "SELECT COALESCE(SUM(total_amount),0) FROM ecom_orders WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
+$items_sold    = scalar($pdo, "SELECT COALESCE(SUM(oi.qty),0) FROM ecom_order_items oi JOIN ecom_orders o ON o.id = oi.order_id WHERE o.created_at BETWEEN ? AND ?", [$range_start, $range_end]);
+$avg_bill      = $bill_count > 0 ? $bill_total / $bill_count : 0;
 
 // ── Earnings — follows the selected date range ──────────────────────────────
 $period_earning = scalar($pdo, "SELECT COALESCE(SUM(total_amount),0) FROM ecom_orders WHERE payment_status='Paid' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
 
 // ── Payment method breakdown for the selected period ─────────────────────────
-$pm_cash = scalar($pdo, "SELECT COALESCE(SUM(total_amount),0) FROM ecom_orders WHERE payment_method='Cash' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$pm_upi  = scalar($pdo, "SELECT COALESCE(SUM(total_amount),0) FROM ecom_orders WHERE payment_method='UPI' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$pm_card = scalar($pdo, "SELECT COALESCE(SUM(total_amount),0) FROM ecom_orders WHERE payment_method='Card' AND created_at BETWEEN ? AND ?", [$range_start, $range_end]);
+// money actually received at billing, per method (split payments counted separately; dues are not money yet)
+$pm_sql  = "SELECT COALESCE(SUM(op.amount),0) FROM ecom_order_payments op JOIN ecom_orders o ON o.id = op.order_id WHERE op.payment_method = ? AND o.created_at BETWEEN ? AND ?";
+$pm_cash = scalar($pdo, $pm_sql, ['Cash', $range_start, $range_end]);
+$pm_upi  = scalar($pdo, $pm_sql, ['UPI', $range_start, $range_end]);
+$pm_card = scalar($pdo, $pm_sql, ['Card', $range_start, $range_end]);
 
 // ── Due ──────────────────────────────────────────────────────────────────────
 $period_new_due    = scalar($pdo, "SELECT COALESCE(SUM(amount),0) FROM ecom_credits WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
@@ -97,10 +94,6 @@ $out_of_stock      = scalar($pdo, "SELECT COUNT(*) FROM ecom_products WHERE prod
 $period_customers     = scalar($pdo, "SELECT COUNT(*) FROM ecom_customers WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
 $period_new_customers = scalar($pdo, "SELECT COUNT(*) FROM ecom_customers WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
 
-// ── Reviews ──────────────────────────────────────────────────────────────────
-$period_reviews_today = scalar($pdo, "SELECT COUNT(*) FROM ecom_product_reviews WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-$period_reviews_total = scalar($pdo, "SELECT COUNT(*) FROM ecom_product_reviews WHERE created_at BETWEEN ? AND ?", [$range_start, $range_end]);
-
 // ── Coupons (always live — never filtered by date) ──────────────────────────
 $active_coupons = scalar($pdo, "SELECT COUNT(*) FROM ecom_coupons WHERE status='active'");
 
@@ -115,8 +108,8 @@ $recent_orders = $pdo->prepare("
 $recent_orders->execute([$range_start, $range_end]);
 $recent_orders = $recent_orders->fetchAll(PDO::FETCH_ASSOC);
 
-$page_title = 'E-commerce Dashboard';
-$page_subtitle = 'A live overview of your store';
+$page_title = 'Store Dashboard';
+$page_subtitle = 'Sales, money, dues and stock at a glance';
 
 function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null) {
     $colors = [
@@ -249,17 +242,14 @@ function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null)
                         <div class="db-display-divider">Sections</div>
 
                         <label class="db-display-check">
-                            <input type="checkbox" data-widget="online" checked> Online Platform
-                            <button type="button" class="db-subtoggle" data-target="sub-online"><i class="fas fa-chevron-down"></i></button>
+                            <input type="checkbox" data-widget="sales" checked> Sales
+                            <button type="button" class="db-subtoggle" data-target="sub-sales"><i class="fas fa-chevron-down"></i></button>
                         </label>
-                        <div class="db-display-sublist" data-sublist="sub-online">
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-total" checked> Total Orders</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-pending" checked> Pending Orders</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-progress" checked> In Progress</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-delivered" checked> Delivered Orders</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-canceled" checked> Canceled Orders</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-custonline" checked> Total Online Customers</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-on-custoffline" checked> Total Offline Customers</label>
+                        <div class="db-display-sublist" data-sublist="sub-sales">
+                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-bills" checked> Bills</label>
+                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-salestotal" checked> Total Sales</label>
+                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-itemssold" checked> Items Sold</label>
+                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-avgbill" checked> Average Bill</label>
                         </div>
 
                         <label class="db-display-check">
@@ -287,28 +277,23 @@ function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null)
                             <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-brands" checked> Total Brands</label>
                             <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-customers" checked> Customers</label>
                             <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-newcustomers" checked> New Customers</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-reviewstoday" checked> Reviews (Period)</label>
-                            <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-reviewstotal" checked> Total Reviews</label>
                             <label class="db-display-check db-sub"><input type="checkbox" data-widget="card-coupons" checked> Active Coupons</label>
                         </div>
 
-                        <label class="db-display-check"><input type="checkbox" data-widget="recentorders" checked> Recent Orders</label>
+                        <label class="db-display-check"><input type="checkbox" data-widget="recentorders" checked> Recent Bills</label>
                     </div>
                 </div>
             </div>
 
-            <!-- ONLINE PLATFORM -->
-            <div data-widget="online">
-                <div class="section-label"><i class="fas fa-globe"></i> Online Platform</div>
+            <!-- SALES -->
+            <div data-widget="sales">
+                <div class="section-label"><i class="fas fa-cash-register"></i> Sales (<?= htmlspecialchars($range_label) ?>)</div>
                 <div class="row">
                     <?php
-                    statCard('green', 'fa-shopping-cart', 'Total Orders', number_format($on_total), 'card-on-total', 'ecommerce/orders.php');
-                    statCard('green', 'fa-hourglass-half', 'Pending Orders', number_format($on_pending), 'card-on-pending', 'ecommerce/orders.php?type=Pending');
-                    statCard('green', 'fa-truck-loading', 'In Progress', number_format($on_progress), 'card-on-progress', 'ecommerce/orders.php?type=In Progress');
-                    statCard('green', 'fa-check-circle', 'Delivered Orders', number_format($on_delivered), 'card-on-delivered', 'ecommerce/orders.php?type=Delivered');
-                    statCard('red', 'fa-ban', 'Canceled Orders', number_format($on_canceled), 'card-on-canceled', 'ecommerce/orders.php?type=Canceled');
-                    statCard('cyan', 'fa-user-plus', 'Total Online Customers', number_format($on_customers), 'card-on-custonline', 'ecommerce/customers.php');
-                    statCard('orange', 'fa-user-plus', 'Total Offline Customers', number_format($off_customers), 'card-on-custoffline', 'ecommerce/customers.php');
+                    statCard('green', 'fa-receipt', 'Bills', number_format($bill_count), 'card-bills', 'ecommerce/sales-history.php');
+                    statCard('green', 'fa-rupee-sign', 'Total Sales', '₹' . number_format($bill_total, 2), 'card-salestotal', 'ecommerce/sales-history.php');
+                    statCard('blue', 'fa-box', 'Items Sold', number_format($items_sold), 'card-itemssold', 'ecommerce/sales-history.php');
+                    statCard('cyan', 'fa-calculator', 'Average Bill', '₹' . number_format($avg_bill, 2), 'card-avgbill', 'ecommerce/sales-history.php');
                     ?>
                 </div>
             </div>
@@ -318,7 +303,7 @@ function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null)
                 <div class="section-label"><i class="fas fa-hand-holding-usd"></i> Earnings &amp; Due (<?= htmlspecialchars($range_label) ?>)</div>
                 <div class="row">
                     <?php
-                    statCard('red', 'fa-rupee-sign', "Earning ({$range_label})", '₹' . number_format($period_earning, 2), 'card-earning', 'ecommerce/sales-history.php');
+                    statCard('red', 'fa-rupee-sign', "Paid ({$range_label})", '₹' . number_format($period_earning, 2), 'card-earning', 'ecommerce/sales-history.php');
                     statCard('orange', 'fa-plus-circle', 'New Due', '₹' . number_format($period_new_due, 2), 'card-newdue', 'ecommerce/due.php');
                     statCard('cyan', 'fa-cash-register', 'Due Collection', '₹' . number_format($period_due_collection, 2), 'card-duecollection', 'ecommerce/due.php');
                     statCard('orange', 'fa-calendar-check', 'Due Promise', '₹' . number_format($period_due_promise, 2), 'card-duepromise', 'ecommerce/due.php');
@@ -335,7 +320,7 @@ function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null)
                 </div>
             </div>
 
-            <!-- STORE OVERVIEW (catalog, customers, reviews, coupons combined) -->
+            <!-- STORE OVERVIEW (catalog, customers, coupons) -->
             <div data-widget="overview">
                 <div class="section-label">Store Overview</div>
                 <div class="row">
@@ -346,8 +331,6 @@ function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null)
                     statCard('blue', 'fa-copyright', 'Total Brands', number_format($total_brands), 'card-brands', 'ecommerce/brands.php');
                     statCard('cyan', 'fa-users', 'Customers', number_format($period_customers), 'card-customers', 'ecommerce/customers.php');
                     statCard('cyan', 'fa-user-plus', 'New Customers', number_format($period_new_customers), 'card-newcustomers', 'ecommerce/customers.php');
-                    statCard('cyan', 'fa-star-half-alt', "Reviews ({$range_label})", number_format($period_reviews_today), 'card-reviewstoday', 'ecommerce/product-reviews.php');
-                    statCard('cyan', 'fa-star', 'Total Reviews', number_format($period_reviews_total), 'card-reviewstotal', 'ecommerce/product-reviews.php');
                     statCard('orange', 'fa-percentage', 'Active Coupons', number_format($active_coupons), 'card-coupons', 'ecommerce/coupons.php');
                     ?>
                 </div>
@@ -355,14 +338,14 @@ function statCard($color, $icon, $label, $value, $widgetKey = null, $url = null)
 
             <div class="gd-card mt-3" data-widget="recentorders">
                 <div class="gd-card-body">
-                    <h5 class="mb-3"><i class="fas fa-clock text-primary"></i> Recent Orders <small class="text-muted">(<?= htmlspecialchars($range_label) ?>)</small></h5>
+                    <h5 class="mb-3"><i class="fas fa-clock text-primary"></i> Recent Bills <small class="text-muted">(<?= htmlspecialchars($range_label) ?>)</small></h5>
                     <?php if (empty($recent_orders)): ?>
-                        <p class="text-muted mb-0">No orders in this period.</p>
+                        <p class="text-muted mb-0">No bills in this period.</p>
                     <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
-                                <tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th></tr>
+                                <tr><th>Bill #</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th></tr>
                             </thead>
                             <tbody>
                             <?php foreach ($recent_orders as $o): ?>
