@@ -1,0 +1,30 @@
+# Block ByteSpider completely
+User-agent: bytespider
+Disallow: /
+
+# Main crawler rules
+User-agent: *
+Allow: /
+
+# Admin pages 
+Disallow: /admin-login-portal.php
+Disallow: /admin.php
+Disallow: /manage.php
+Disallow: /manage-files.php
+
+# System directories
+Disallow: /api/
+Disallow: /components/
+
+# Sensitive Info & logs
+Disallow: *.sql
+Disallow: *.log
+Disallow: *.md
+
+# Configuration files
+Disallow: /includes/config.php
+Disallow: /db_cron.php
+
+# Sitemap declaration 
+Sitemap: https://edumint24.com/sitemap.xml
+Sitemap: https://edumint24.com/news-sitemap.xml

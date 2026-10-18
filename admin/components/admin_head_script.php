@@ -1,0 +1,21 @@
+<!-- Meta Tags -->
+<meta name="author" content="<?= htmlspecialchars($site_name) ?>">
+
+<!-- Robots Meta -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+	
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+
+<!-- Basic Theme Colors -->
+<meta name="theme-color" content="#004aad">
+	
+<link rel="stylesheet" href="/assets/css/cd.min.css?v=25102025">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Barlow+Semi+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<script>!function(){let e=localStorage.dm==="1",t=!1,n=!1,s=()=>new Promise((e,r)=>{let o=document.createElement("script");o.src="/assets/js/darkreader.min.js",o.onload=()=>{t=!0,e()},o.onerror=r,document.head.appendChild(o)}),a=()=>DarkReader.enable({brightness:100,contrast:100,sepia:10}),d=()=>DarkReader.disable();e&&(t?a():s().then(a));async function o(r){if(r.preventDefault(),n)return;n=!0;let c=document.querySelectorAll(".dark-mode-toggle");c.forEach(e=>e.classList.add("loading"));try{t||await s(),e=!e,localStorage.dm=e?"1":"0",e?a():d()}finally{setTimeout(()=>{c.forEach(e=>e.classList.remove("loading")),n=!1},600)}}document.addEventListener("DOMContentLoaded",()=>{document.querySelectorAll(".dark-mode-toggle").forEach(e=>e.onclick=o)})}();</script>
+
+<style id="critical">:root{--special-font-1:'Barlow Semi Condensed','Roboto',sans-serif;--primary-color:#004aad}*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent!important}body{font-family:'Roboto',sans-serif;line-height:1.6;color:#333;background:#fff;font-size:15px}a{text-decoration:none;color:#046bd2}h1,h2,h3{font-family:var(--special-font-1)}.container{max-width:1200px;margin:0 auto;padding:0 15px}header{background:#fff;box-shadow:0 2px 4px rgb(0 0 0 / .1);padding:10px 0;position:relative;z-index:1000}.brand-link{display:flex;align-items:center;text-decoration:none;color:var(--primary-color)}.brand-link img{height:50px;width:auto}.brand-title{font-family:var(--special-font-1);margin:0 0 0 5px;color:var(--primary-color);font-size:1.4rem;font-weight:700}header .container{display:flex;justify-content:space-between;align-items:center;max-width:1400px;margin:0 auto;padding:0 15px}nav ul{display:flex;list-style:none}nav li{margin-left:20px;}nav li:hover{background: #EDF4FF}nav a{font-weight:600;text-decoration:none}}.page-title{font-size:1.5rem;padding:10px 0}.post-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:30px;margin:0}.post-card{background:#fff;overflow:hidden;box-shadow:0 0 16px rgb(0 0 0 / .05);cursor:pointer;border-radius:6px;will-change:transform}.post-card-link{text-decoration:none;color:inherit;display:block}.post-banner{width:100%;height:200px;overflow:hidden;background:#f0f0f0;position:relative}.post-banner img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;will-change:transform}.post-card:hover .post-banner img{transform:scale(1.05)}.post-banner-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;font-weight:700}.post-card-content{padding:20px}.post-card-title{font-size:1.3rem;font-weight:700;margin:0 0 12px 0;color:#333;line-height:1.4}.post-card-author{font-family:var(--special-font-1);font-size:14px;color:#046bd2;font-weight:600;margin:0}@media(max-width:768px){.post-grid{grid-template-columns:1fr;gap:20px}}.category-section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:.2rem;border-bottom:1px dotted #2c3e50}.category-section-title{font-size:1.4rem;color:#2c3e50;margin:0}.view-all-link{color:var(--primary-color);text-decoration:none;font-weight:600;font-size:.95rem;transition:color .2s ease;will-change:color}.view-all-link:hover{color:#003d8a}.no-posts-message{color:#555!important;text-shadow:0 0 1px rgb(0 0 0 / .1);font-style:italic;padding:2rem 0}</style>
+
+<script>
+document.addEventListener('copy', e => e.stopImmediatePropagation(), true);
+</script>

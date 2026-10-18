@@ -1,0 +1,15 @@
+# real settings (copy includes/config.example.php to includes/config.php)
+includes/config.php
+# runtime files
+cache/*
+!cache/.gitkeep
+cj_smart_cache/*.json
+uploads/**
+!uploads/**/
+!uploads/**/.gitkeep
+files/*
+!files/.gitkeep
+vendor/
+.DS_Store
+._*
+*.log

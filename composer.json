@@ -1,0 +1,10 @@
+{
+    "name": "aj3hiru/php-inventory-manager",
+    "description": "PHP site with e-commerce: inventory, billing, orders, customers, dues and an online shop.",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "minishlink/web-push": "^9.0",
+        "phpmailer/phpmailer": "^7.0"
+    }
+}
